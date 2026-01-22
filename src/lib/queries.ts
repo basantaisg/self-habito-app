@@ -5,26 +5,55 @@ import type { SessionType, DashboardStats, Settings, Category, WorkSession, Slee
 // Helper to get today's date string
 const todayStr = () => format(new Date(), 'yyyy-MM-dd');
 
+// Helper to get current user ID
+async function getCurrentUserId(): Promise<string> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+  return user.id;
+}
+
 // Settings
 export async function getSettings(): Promise<Settings | null> {
+  const userId = await getCurrentUserId();
   const { data, error } = await supabase
     .from('settings')
     .select('*')
-    .eq('id', 1)
+    .eq('user_id', userId)
     .single();
   
-  if (error) {
+  if (error && error.code !== 'PGRST116') { // PGRST116 = no rows found
     console.error('Error fetching settings:', error);
     return null;
   }
-  return data as Settings;
+  return data as Settings | null;
 }
 
 export async function updateSettings(updates: Partial<Settings>): Promise<Settings | null> {
+  const userId = await getCurrentUserId();
+  
+  // First check if settings exist for this user
+  const existing = await getSettings();
+  
+  if (!existing) {
+    // Create new settings for this user
+    const { data, error } = await supabase
+      .from('settings')
+      .insert({ ...updates, user_id: userId })
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error creating settings:', error);
+      throw error;
+    }
+    return data as Settings;
+  }
+  
+  // Update existing settings
   const { data, error } = await supabase
     .from('settings')
     .update(updates)
-    .eq('id', 1)
+    .eq('user_id', userId)
     .select()
     .single();
   
@@ -50,6 +79,8 @@ export async function getCategories(): Promise<Category[]> {
 }
 
 export async function addCategory(name: string): Promise<Category | null> {
+  const userId = await getCurrentUserId();
+  
   const { data: existing } = await supabase
     .from('categories')
     .select('sort_order')
@@ -60,7 +91,7 @@ export async function addCategory(name: string): Promise<Category | null> {
   
   const { data, error } = await supabase
     .from('categories')
-    .insert({ name, sort_order: maxOrder + 1 })
+    .insert({ name, sort_order: maxOrder + 1, user_id: userId })
     .select()
     .single();
   
@@ -83,6 +114,34 @@ export async function deleteCategory(id: string): Promise<void> {
   }
 }
 
+// Initialize default categories for a new user
+export async function initializeDefaultCategories(): Promise<void> {
+  const userId = await getCurrentUserId();
+  
+  // Check if user already has categories
+  const { data: existing } = await supabase
+    .from('categories')
+    .select('id')
+    .limit(1);
+  
+  if (existing && existing.length > 0) return;
+  
+  // Seed default categories
+  const defaultCategories = ['Physics', 'Chemistry', 'Math', 'English', 'Video Editing', 'Other'];
+  
+  const { error } = await supabase
+    .from('categories')
+    .insert(defaultCategories.map((name, index) => ({
+      name,
+      sort_order: index,
+      user_id: userId
+    })));
+  
+  if (error) {
+    console.error('Error initializing categories:', error);
+  }
+}
+
 // Work Sessions
 export async function addWorkSession(
   startTime: Date,
@@ -92,6 +151,8 @@ export async function addWorkSession(
   categoryId?: string,
   note?: string
 ): Promise<WorkSession | null> {
+  const userId = await getCurrentUserId();
+  
   const { data, error } = await supabase
     .from('work_sessions')
     .insert({
@@ -102,6 +163,7 @@ export async function addWorkSession(
       session_type: sessionType,
       category_id: categoryId || null,
       note: note || null,
+      user_id: userId,
     })
     .select()
     .single();
@@ -149,6 +211,8 @@ export async function addSleepLog(
   quality?: number,
   note?: string
 ): Promise<SleepLog | null> {
+  const userId = await getCurrentUserId();
+  
   const { data, error } = await supabase
     .from('sleep_logs')
     .insert({
@@ -158,6 +222,7 @@ export async function addSleepLog(
       wake_time: wakeTime || null,
       quality: quality || null,
       note: note || null,
+      user_id: userId,
     })
     .select()
     .single();
@@ -198,9 +263,35 @@ export async function deleteSleepLog(id: string): Promise<void> {
 
 // Weight Logs
 export async function addWeightLog(date: string, weightKg: number): Promise<WeightLog | null> {
+  const userId = await getCurrentUserId();
+  
+  // Check if entry exists for this date (for this user - RLS handles filtering)
+  const { data: existing } = await supabase
+    .from('weight_logs')
+    .select('id')
+    .eq('date', date)
+    .limit(1);
+  
+  if (existing && existing.length > 0) {
+    // Update existing entry
+    const { data, error } = await supabase
+      .from('weight_logs')
+      .update({ weight_kg: weightKg })
+      .eq('id', existing[0].id)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error('Error updating weight log:', error);
+      throw error;
+    }
+    return data as WeightLog;
+  }
+  
+  // Insert new entry
   const { data, error } = await supabase
     .from('weight_logs')
-    .upsert({ date, weight_kg: weightKg }, { onConflict: 'date' })
+    .insert({ date, weight_kg: weightKg, user_id: userId })
     .select()
     .single();
   
@@ -246,6 +337,8 @@ export async function addWorkoutLog(
   intensity?: number,
   note?: string
 ): Promise<WorkoutLog | null> {
+  const userId = await getCurrentUserId();
+  
   const { data, error } = await supabase
     .from('workout_logs')
     .insert({
@@ -254,6 +347,7 @@ export async function addWorkoutLog(
       duration_minutes: durationMinutes,
       intensity: intensity || null,
       note: note || null,
+      user_id: userId,
     })
     .select()
     .single();
