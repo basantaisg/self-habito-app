@@ -20,18 +20,21 @@ export type Database = {
           id: string
           name: string
           sort_order: number | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
           name: string
           sort_order?: number | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
           name?: string
           sort_order?: number | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -48,6 +51,7 @@ export type Database = {
           ultradian_break_min: number | null
           ultradian_work_min: number | null
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
@@ -61,6 +65,7 @@ export type Database = {
           ultradian_break_min?: number | null
           ultradian_work_min?: number | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
@@ -74,6 +79,7 @@ export type Database = {
           ultradian_break_min?: number | null
           ultradian_work_min?: number | null
           updated_at?: string | null
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -86,6 +92,7 @@ export type Database = {
           id: string
           note: string | null
           quality: number | null
+          user_id: string | null
           wake_time: string | null
         }
         Insert: {
@@ -96,6 +103,7 @@ export type Database = {
           id?: string
           note?: string | null
           quality?: number | null
+          user_id?: string | null
           wake_time?: string | null
         }
         Update: {
@@ -106,6 +114,7 @@ export type Database = {
           id?: string
           note?: string | null
           quality?: number | null
+          user_id?: string | null
           wake_time?: string | null
         }
         Relationships: []
@@ -115,18 +124,21 @@ export type Database = {
           created_at: string | null
           date: string
           id: string
+          user_id: string | null
           weight_kg: number
         }
         Insert: {
           created_at?: string | null
           date: string
           id?: string
+          user_id?: string | null
           weight_kg: number
         }
         Update: {
           created_at?: string | null
           date?: string
           id?: string
+          user_id?: string | null
           weight_kg?: number
         }
         Relationships: []
@@ -142,6 +154,7 @@ export type Database = {
           note: string | null
           session_type: Database["public"]["Enums"]["session_type"]
           start_time: string
+          user_id: string | null
         }
         Insert: {
           category_id?: string | null
@@ -153,6 +166,7 @@ export type Database = {
           note?: string | null
           session_type: Database["public"]["Enums"]["session_type"]
           start_time: string
+          user_id?: string | null
         }
         Update: {
           category_id?: string | null
@@ -164,6 +178,7 @@ export type Database = {
           note?: string | null
           session_type?: Database["public"]["Enums"]["session_type"]
           start_time?: string
+          user_id?: string | null
         }
         Relationships: [
           {
@@ -183,6 +198,7 @@ export type Database = {
           id: string
           intensity: number | null
           note: string | null
+          user_id: string | null
           workout_type: string
         }
         Insert: {
@@ -192,6 +208,7 @@ export type Database = {
           id?: string
           intensity?: number | null
           note?: string | null
+          user_id?: string | null
           workout_type: string
         }
         Update: {
@@ -201,6 +218,7 @@ export type Database = {
           id?: string
           intensity?: number | null
           note?: string | null
+          user_id?: string | null
           workout_type?: string
         }
         Relationships: []

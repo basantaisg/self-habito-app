@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,6 +8,7 @@ import { AuthProvider, useAuth } from "@/lib/auth-context";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { LoginScreen } from "@/components/auth/LoginScreen";
 import { QuickAddFab } from "@/components/QuickAddFab";
+import { initializeDefaultCategories } from "@/lib/queries";
 import Index from "./pages/Index";
 import Timers from "./pages/Timers";
 import Log from "./pages/Log";
@@ -18,6 +20,13 @@ const queryClient = new QueryClient();
 
 function AppContent() {
   const { user, loading } = useAuth();
+
+  // Initialize default categories for new users
+  useEffect(() => {
+    if (user) {
+      initializeDefaultCategories().catch(console.error);
+    }
+  }, [user]);
 
   if (loading) {
     return (
