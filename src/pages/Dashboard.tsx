@@ -1,41 +1,11 @@
-import { useState, useEffect } from 'react';
 import { Clock, Moon, Scale, Dumbbell, Flame, Timer, Zap } from 'lucide-react';
 import { StatCard } from '@/components/dashboard/StatCard';
 import { DashboardCharts } from '@/components/dashboard/DashboardCharts';
-import { getDashboardStats, getSettings } from '@/lib/queries';
-import type { DashboardStats, Settings } from '@/types/database';
+import { useData } from '@/lib/data-context';
 
 export default function Dashboard() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [settings, setSettings] = useState<Settings | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadData() {
-      const [statsData, settingsData] = await Promise.all([
-        getDashboardStats(),
-        getSettings(),
-      ]);
-      setStats(statsData);
-      setSettings(settingsData);
-      setLoading(false);
-    }
-    loadData();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="stat-card animate-pulse">
-              <div className="h-20 bg-muted/30 rounded-lg" />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
+  const { getDashboardStats, settings } = useData();
+  const stats = getDashboardStats();
 
   const weightChange = settings?.start_weight_kg && stats?.weightToday
     ? (stats.weightToday - settings.start_weight_kg).toFixed(1)

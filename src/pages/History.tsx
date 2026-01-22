@@ -1,24 +1,12 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { format, subDays, parseISO } from 'date-fns';
 import { Calendar, Clock, Moon, Scale, Dumbbell, Trash2, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import {
-  getWorkSessions,
-  getSleepLogs,
-  getWeightLogs,
-  getWorkoutLogs,
-  getCategories,
-  deleteWorkSession,
-  deleteSleepLog,
-  deleteWeightLog,
-  deleteWorkoutLog,
-} from '@/lib/queries';
-import type { WorkSession, SleepLog, WeightLog, WorkoutLog, Category } from '@/types/database';
+import { useData } from '@/lib/data-context';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 
 type LogType = 'all' | 'work' | 'sleep' | 'weight' | 'workout';
 
@@ -33,34 +21,36 @@ interface HistoryEntry {
 }
 
 export default function History() {
-  const [entries, setEntries] = useState<HistoryEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { 
+    getWorkSessions, 
+    getSleepLogs, 
+    getWeightLogs, 
+    getWorkoutLogs, 
+    categories,
+    deleteWorkSession,
+    deleteSleepLog,
+    deleteWeightLog,
+    deleteWorkoutLog,
+  } = useData();
+  
   const [filterType, setFilterType] = useState<LogType>('all');
   const [startDate, setStartDate] = useState(format(subDays(new Date(), 30), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(new Date(), 'yyyy-MM-dd'));
-  const [categories, setCategories] = useState<Category[]>([]);
 
-  const loadData = async () => {
-    setLoading(true);
-    
+  const entries = useMemo(() => {
     const start = parseISO(startDate);
     const end = parseISO(endDate);
 
-    const [workData, sleepData, weightData, workoutData, catData] = await Promise.all([
-      getWorkSessions(start, end),
-      getSleepLogs(start, end),
-      getWeightLogs(start, end),
-      getWorkoutLogs(start, end),
-      getCategories(),
-    ]);
-
-    setCategories(catData);
+    const workData = getWorkSessions(start, end);
+    const sleepData = getSleepLogs(start, end);
+    const weightData = getWeightLogs(start, end);
+    const workoutData = getWorkoutLogs(start, end);
 
     const allEntries: HistoryEntry[] = [];
 
     // Map work sessions
     workData.forEach((w) => {
-      const cat = catData.find(c => c.id === w.category_id);
+      const cat = categories.find(c => c.id === w.category_id);
       allEntries.push({
         id: w.id,
         type: 'work',
@@ -126,13 +116,8 @@ export default function History() {
     // Sort by date descending
     allEntries.sort((a, b) => b.date.localeCompare(a.date));
 
-    setEntries(allEntries);
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    loadData();
-  }, [startDate, endDate]);
+    return allEntries;
+  }, [startDate, endDate, getWorkSessions, getSleepLogs, getWeightLogs, getWorkoutLogs, categories, deleteWorkSession, deleteSleepLog, deleteWeightLog, deleteWorkoutLog]);
 
   const filteredEntries = filterType === 'all' 
     ? entries 
@@ -141,7 +126,6 @@ export default function History() {
   const handleDelete = async (entry: HistoryEntry) => {
     try {
       await entry.onDelete();
-      loadData();
     } catch (error) {
       toast.error('Failed to delete entry');
     }
@@ -213,15 +197,7 @@ export default function History() {
       </div>
 
       {/* Entries List */}
-      {loading ? (
-        <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="card-elevated animate-pulse">
-              <div className="h-16 bg-muted/30 rounded-lg" />
-            </div>
-          ))}
-        </div>
-      ) : filteredEntries.length === 0 ? (
+      {filteredEntries.length === 0 ? (
         <div className="card-elevated text-center py-12">
           <Calendar className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h3 className="text-lg font-medium mb-2">No entries found</h3>

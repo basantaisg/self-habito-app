@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
-import { addSleepLog } from '@/lib/queries';
+import { useData } from '@/lib/data-context';
 import { toast } from 'sonner';
 import { Moon } from 'lucide-react';
 
@@ -27,6 +27,7 @@ interface SleepLogFormProps {
 }
 
 export function SleepLogForm({ onSuccess }: SleepLogFormProps) {
+  const { addSleepLog } = useData();
   const [loading, setLoading] = useState(false);
   const [quality, setQuality] = useState<number>(3);
 

@@ -6,7 +6,7 @@ import { format } from 'date-fns';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { addWeightLog } from '@/lib/queries';
+import { useData } from '@/lib/data-context';
 import { toast } from 'sonner';
 import { Scale } from 'lucide-react';
 
@@ -22,6 +22,7 @@ interface WeightLogFormProps {
 }
 
 export function WeightLogForm({ onSuccess }: WeightLogFormProps) {
+  const { addWeightLog } = useData();
   const [loading, setLoading] = useState(false);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<WeightFormData>({

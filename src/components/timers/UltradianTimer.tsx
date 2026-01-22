@@ -1,32 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Play, Pause, Square, SkipForward } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TimerDisplay } from './TimerDisplay';
 import { useTimer } from '@/hooks/use-timer';
-import { addWorkSession, getSettings } from '@/lib/queries';
+import { useData } from '@/lib/data-context';
 import { toast } from 'sonner';
 import { SessionCompleteDialog } from './SessionCompleteDialog';
 
 export function UltradianTimer() {
-  const [settings, setSettings] = useState({
-    workMinutes: 90,
-    breakMinutes: 20,
-  });
+  const { settings, addWorkSession } = useData();
   const [showCompleteDialog, setShowCompleteDialog] = useState(false);
   const [completedSession, setCompletedSession] = useState<{ duration: number; startTime: Date; endTime: Date } | null>(null);
 
-  useEffect(() => {
-    async function loadSettings() {
-      const s = await getSettings();
-      if (s) {
-        setSettings({
-          workMinutes: s.ultradian_work_min,
-          breakMinutes: s.ultradian_break_min,
-        });
-      }
-    }
-    loadSettings();
-  }, []);
+  const timerSettings = {
+    workMinutes: settings.ultradian_work_min ?? 90,
+    breakMinutes: settings.ultradian_break_min ?? 20,
+  };
 
   const handleWorkComplete = (duration: number, startTime: Date, endTime: Date) => {
     setCompletedSession({ duration, startTime, endTime });
