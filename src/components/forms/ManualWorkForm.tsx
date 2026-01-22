@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -7,10 +7,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { addWorkSession, getCategories } from '@/lib/queries';
+import { useData } from '@/lib/data-context';
 import { toast } from 'sonner';
 import { Clock } from 'lucide-react';
-import type { Category } from '@/types/database';
 
 const workSchema = z.object({
   date: z.string(),
@@ -26,13 +25,9 @@ interface ManualWorkFormProps {
 }
 
 export function ManualWorkForm({ onSuccess }: ManualWorkFormProps) {
+  const { addWorkSession, categories } = useData();
   const [loading, setLoading] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [categoryId, setCategoryId] = useState('');
-
-  useEffect(() => {
-    getCategories().then(setCategories);
-  }, []);
 
   const { register, handleSubmit, reset, formState: { errors } } = useForm<WorkFormData>({
     resolver: zodResolver(workSchema),

@@ -3,7 +3,7 @@ import { Play, Pause, Square } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TimerDisplay } from './TimerDisplay';
 import { useStopwatch } from '@/hooks/use-stopwatch';
-import { addWorkSession } from '@/lib/queries';
+import { useData } from '@/lib/data-context';
 import { toast } from 'sonner';
 import { SessionCompleteDialog } from './SessionCompleteDialog';
 

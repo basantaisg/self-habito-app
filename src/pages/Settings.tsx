@@ -1,16 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Settings2, Timer, Scale, Tag, Download, Upload, Plus, X, LogOut } from 'lucide-react';
+import { Settings2, Timer, Scale, Tag, Download, Upload, Plus, X, Cloud, CloudOff, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { getSettings, updateSettings, getCategories, addCategory, deleteCategory, exportData } from '@/lib/queries';
-import type { Settings, Category } from '@/types/database';
-import { toast } from 'sonner';
+import { useData } from '@/lib/data-context';
 import { useAuth } from '@/lib/auth-context';
+import { toast } from 'sonner';
 
 const settingsSchema = z.object({
   startWeightKg: z.coerce.number().min(20).max(300).optional().nullable(),
@@ -26,42 +25,39 @@ const settingsSchema = z.object({
 type SettingsFormData = z.infer<typeof settingsSchema>;
 
 export default function SettingsPage() {
-  const { signOut } = useAuth();
-  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const { 
+    settings, 
+    updateSettings, 
+    categories, 
+    addCategory: addCat, 
+    deleteCategory: deleteCat,
+    exportData,
+    importData,
+    syncToCloud,
+    syncFromCloud,
+    isSyncing,
+    isOnline
+  } = useData();
+  
   const [saving, setSaving] = useState(false);
-  const [categories, setCategories] = useState<Category[]>([]);
   const [newCategory, setNewCategory] = useState('');
   const [exporting, setExporting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<SettingsFormData>({
+  const { register, handleSubmit, formState: { errors } } = useForm<SettingsFormData>({
     resolver: zodResolver(settingsSchema),
+    defaultValues: {
+      startWeightKg: settings.start_weight_kg,
+      goalWeightKg: settings.goal_weight_kg,
+      pomodoroWorkMin: settings.pomodoro_work_min ?? 25,
+      pomodoroBreakMin: settings.pomodoro_break_min ?? 5,
+      pomodoroLongBreakMin: settings.pomodoro_long_break_min ?? 15,
+      pomodoroCyclesBeforeLong: settings.pomodoro_cycles_before_long ?? 4,
+      ultradianWorkMin: settings.ultradian_work_min ?? 90,
+      ultradianBreakMin: settings.ultradian_break_min ?? 20,
+    },
   });
-
-  useEffect(() => {
-    async function loadData() {
-      const [settings, cats] = await Promise.all([
-        getSettings(),
-        getCategories(),
-      ]);
-      
-      if (settings) {
-        reset({
-          startWeightKg: settings.start_weight_kg,
-          goalWeightKg: settings.goal_weight_kg,
-          pomodoroWorkMin: settings.pomodoro_work_min,
-          pomodoroBreakMin: settings.pomodoro_break_min,
-          pomodoroLongBreakMin: settings.pomodoro_long_break_min,
-          pomodoroCyclesBeforeLong: settings.pomodoro_cycles_before_long,
-          ultradianWorkMin: settings.ultradian_work_min,
-          ultradianBreakMin: settings.ultradian_break_min,
-        });
-      }
-      
-      setCategories(cats);
-      setLoading(false);
-    }
-    loadData();
-  }, [reset]);
 
   const onSubmit = async (data: SettingsFormData) => {
     setSaving(true);
@@ -88,12 +84,9 @@ export default function SettingsPage() {
     if (!newCategory.trim()) return;
     
     try {
-      const cat = await addCategory(newCategory.trim());
-      if (cat) {
-        setCategories([...categories, cat]);
-        setNewCategory('');
-        toast.success('Category added!');
-      }
+      await addCat(newCategory.trim());
+      setNewCategory('');
+      toast.success('Category added!');
     } catch (error) {
       toast.error('Failed to add category');
     }
@@ -101,8 +94,7 @@ export default function SettingsPage() {
 
   const handleDeleteCategory = async (id: string) => {
     try {
-      await deleteCategory(id);
-      setCategories(categories.filter(c => c.id !== id));
+      await deleteCat(id);
       toast.success('Category deleted');
     } catch (error) {
       toast.error('Failed to delete category');
@@ -112,7 +104,7 @@ export default function SettingsPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      const data = await exportData();
+      const data = exportData();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -128,21 +120,78 @@ export default function SettingsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        <div className="card-elevated animate-pulse">
-          <div className="h-64 bg-muted/30 rounded-lg" />
-        </div>
-      </div>
-    );
-  }
+  const handleImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = JSON.parse(event.target?.result as string);
+        importData(data);
+      } catch (error) {
+        toast.error('Failed to import data - invalid file format');
+      }
+    };
+    reader.readAsText(file);
+    
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   return (
     <div className="space-y-6 animate-fade-in max-w-2xl">
       <div>
         <h1 className="text-3xl font-bold">Settings</h1>
         <p className="text-muted-foreground">Configure your tracker preferences</p>
+      </div>
+
+      {/* Storage Status */}
+      <div className="card-elevated space-y-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            {isOnline ? (
+              <Cloud className="w-5 h-5 text-success" />
+            ) : (
+              <CloudOff className="w-5 h-5 text-muted-foreground" />
+            )}
+            <div>
+              <h2 className="text-lg font-semibold">Storage</h2>
+              <p className="text-sm text-muted-foreground">
+                Data stored locally • {isOnline ? 'Online' : 'Offline'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {user ? (
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncToCloud}
+              disabled={isSyncing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isSyncing ? 'animate-spin' : ''}`} />
+              Sync to Cloud
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={syncFromCloud}
+              disabled={isSyncing}
+            >
+              <Download className="w-4 h-4 mr-2" />
+              Sync from Cloud
+            </Button>
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground">
+            Sign in to enable cloud sync (optional)
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
@@ -310,19 +359,21 @@ export default function SettingsPage() {
             <Download className="w-4 h-4 mr-2" />
             {exporting ? 'Exporting...' : 'Export Data'}
           </Button>
-        </div>
-
-        <Separator />
-
-        <div>
+          
           <Button
             variant="outline"
-            className="text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={() => signOut()}
+            onClick={() => fileInputRef.current?.click()}
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
+            <Upload className="w-4 h-4 mr-2" />
+            Import Data
           </Button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleImport}
+            className="hidden"
+          />
         </div>
       </div>
     </div>

@@ -1,23 +1,13 @@
-import { useState, useEffect } from 'react';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
-import { getChartData } from '@/lib/queries';
+import { useState } from 'react';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useData } from '@/lib/data-context';
 import { format, parseISO } from 'date-fns';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export function DashboardCharts() {
-  const [chartData, setChartData] = useState<any[]>([]);
+  const { getChartData } = useData();
   const [days, setDays] = useState<7 | 30>(7);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    async function loadData() {
-      setLoading(true);
-      const data = await getChartData(days);
-      setChartData(data);
-      setLoading(false);
-    }
-    loadData();
-  }, [days]);
+  const chartData = getChartData(days);
 
   const formatDate = (dateStr: string) => {
     const date = parseISO(dateStr);
@@ -39,14 +29,6 @@ export function DashboardCharts() {
     }
     return null;
   };
-
-  if (loading) {
-    return (
-      <div className="card-elevated animate-pulse">
-        <div className="h-64 bg-muted/30 rounded-lg" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
@@ -84,24 +66,10 @@ export function DashboardCharts() {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
-                tickFormatter={formatDate}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                tickFormatter={(v) => `${v}h`}
-              />
+              <XAxis dataKey="date" tickFormatter={formatDate} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `${v}h`} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar 
-                dataKey="workHours" 
-                name="Work Hours"
-                fill="hsl(var(--primary))" 
-                radius={[4, 4, 0, 0]}
-              />
+              <Bar dataKey="workHours" name="Work Hours" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </TabsContent>
@@ -110,28 +78,10 @@ export function DashboardCharts() {
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
-                tickFormatter={formatDate}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                domain={[0, 12]}
-                tickFormatter={(v) => `${v}h`}
-              />
+              <XAxis dataKey="date" tickFormatter={formatDate} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 12]} tickFormatter={(v) => `${v}h`} />
               <Tooltip content={<CustomTooltip />} />
-              <Line 
-                type="monotone"
-                dataKey="sleepHours" 
-                name="Sleep Hours"
-                stroke="hsl(var(--info))" 
-                strokeWidth={2}
-                dot={{ fill: 'hsl(var(--info))', strokeWidth: 0, r: 4 }}
-                connectNulls
-              />
+              <Line type="monotone" dataKey="sleepHours" name="Sleep Hours" stroke="hsl(var(--info))" strokeWidth={2} dot={{ fill: 'hsl(var(--info))', strokeWidth: 0, r: 4 }} connectNulls />
             </LineChart>
           </ResponsiveContainer>
         </TabsContent>
@@ -140,28 +90,10 @@ export function DashboardCharts() {
           <ResponsiveContainer width="100%" height={280}>
             <LineChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
-                tickFormatter={formatDate}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                domain={['dataMin - 2', 'dataMax + 2']}
-                tickFormatter={(v) => `${v}kg`}
-              />
+              <XAxis dataKey="date" tickFormatter={formatDate} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={['dataMin - 2', 'dataMax + 2']} tickFormatter={(v) => `${v}kg`} />
               <Tooltip content={<CustomTooltip />} />
-              <Line 
-                type="monotone"
-                dataKey="weight" 
-                name="Weight (kg)"
-                stroke="hsl(var(--accent))" 
-                strokeWidth={2}
-                dot={{ fill: 'hsl(var(--accent))', strokeWidth: 0, r: 4 }}
-                connectNulls
-              />
+              <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ fill: 'hsl(var(--accent))', strokeWidth: 0, r: 4 }} connectNulls />
             </LineChart>
           </ResponsiveContainer>
         </TabsContent>
@@ -170,26 +102,10 @@ export function DashboardCharts() {
           <ResponsiveContainer width="100%" height={280}>
             <BarChart data={chartData}>
               <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-              <XAxis 
-                dataKey="date" 
-                tickFormatter={formatDate}
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-              />
-              <YAxis 
-                stroke="hsl(var(--muted-foreground))"
-                fontSize={12}
-                domain={[0, 1]}
-                ticks={[0, 1]}
-                tickFormatter={(v) => v === 1 ? '✓' : '-'}
-              />
+              <XAxis dataKey="date" tickFormatter={formatDate} stroke="hsl(var(--muted-foreground))" fontSize={12} />
+              <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} domain={[0, 1]} ticks={[0, 1]} tickFormatter={(v) => v === 1 ? '✓' : '-'} />
               <Tooltip content={<CustomTooltip />} />
-              <Bar 
-                dataKey={(d) => d.workout ? 1 : 0} 
-                name="Workout"
-                fill="hsl(var(--success))" 
-                radius={[4, 4, 0, 0]}
-              />
+              <Bar dataKey={(d) => d.workout ? 1 : 0} name="Workout" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </TabsContent>

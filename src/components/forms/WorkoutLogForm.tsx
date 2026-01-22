@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { addWorkoutLog } from '@/lib/queries';
+import { useData } from '@/lib/data-context';
 import { toast } from 'sonner';
 import { Dumbbell } from 'lucide-react';
 
@@ -28,6 +28,7 @@ interface WorkoutLogFormProps {
 }
 
 export function WorkoutLogForm({ onSuccess }: WorkoutLogFormProps) {
+  const { addWorkoutLog } = useData();
   const [loading, setLoading] = useState(false);
   const [intensity, setIntensity] = useState<number>(3);
   const [workoutType, setWorkoutType] = useState('');
